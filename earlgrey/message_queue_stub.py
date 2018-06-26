@@ -20,8 +20,8 @@ import pika
 import threading
 
 from typing import TypeVar, Generic
-from loopchain.message_queue import (MessageQueueType, MessageQueueException, worker, rpc,
-                                     MESSAGE_QUEUE_TYPE_KEY, MESSAGE_QUEUE_PRIORITY_KEY, TASK_ATTR_DICT)
+from . import (MessageQueueType, MessageQueueException, worker, rpc,
+               MESSAGE_QUEUE_TYPE_KEY, MESSAGE_QUEUE_PRIORITY_KEY, TASK_ATTR_DICT)
 
 T = TypeVar('T')
 

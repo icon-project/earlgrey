@@ -17,8 +17,8 @@ import asyncio
 
 from typing import TypeVar, Generic
 
-from loopchain.message_queue import MessageQueueType, MESSAGE_QUEUE_TYPE_KEY, TASK_ATTR_DICT
-from loopchain.message_queue.patterns import worker, rpc
+from . import MessageQueueType, MESSAGE_QUEUE_TYPE_KEY, TASK_ATTR_DICT
+from .patterns import worker, rpc
 
 T = TypeVar('T')
 
