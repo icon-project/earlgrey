@@ -5,7 +5,7 @@ with open('requirements.txt') as requirements:
     requires = list(requirements)
 
 setup_options = {
-    'name': 'EarlGrey',
+    'name': 'earlgrey',
     'description': 'Message Queue library using RabbitMQ',
     'author': 'ICON foundation',
     'packages': find_packages(),
