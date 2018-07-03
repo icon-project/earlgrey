@@ -1,6 +1,6 @@
 # Earlgrey
 
-Earlgrey is a python library which provides a convenient way to publish and consume between processes using RabbitMQ. It is abstracted to RPC pattern.
+Earlgrey is a python library which provides a convenient way to publish and consume messages between processes using RabbitMQ. It is abstracted to RPC pattern.
 
 # How to use
 ```python
