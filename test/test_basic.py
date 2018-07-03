@@ -32,7 +32,7 @@ class TestBasic(unittest.TestCase):
             TaskType = Task
 
         async def _run():
-            route_key = 'something any same string between processes you want'
+            route_key = 'any same string between processes'
 
             client = Stub('localhost', route_key)
             server = Service('localhost', route_key)
