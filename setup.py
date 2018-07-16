@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
+from earlgrey import __version__
 
 with open('requirements.txt') as requirements:
     requires = list(requirements)
 
 setup_options = {
     'name': 'earlgrey',
-    'description': 'Message Queue library using RabbitMQ',
+    'description': 'Message Queue library',
+    'version': __version__,
     'author': 'ICON foundation',
     'packages': find_packages(),
     'license': "Apache License 2.0",
