@@ -28,7 +28,7 @@ T = TypeVar('T')
 class MessageQueueStub(MessageQueueConnection, Generic[T]):
     TaskType: type = object
 
-    def __init__(self, amqp_target, route_key, account='guest', password='guest', ):
+    def __init__(self, amqp_target, route_key, account=None, password=None, ):
         super().__init__(amqp_target, route_key, account, password)
 
         if self.TaskType is object and type(self) is not MessageQueueStub:

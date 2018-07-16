@@ -11,17 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 import aio_pika
 from aio_pika.robust_connection import RobustConnection, RobustChannel
 
 
 class MessageQueueConnection:
-    def __init__(self, amqp_target, route_key, account='guest', password='guest'):
+    def __init__(self, amqp_target, route_key, account=None, password=None):
         self._amqp_target = amqp_target
         self._route_key = route_key
-        self._account = account
-        self._password = password
+
+        self._account = account or os.getenv("AMQP_ACCOUNT", "guest")
+        self._password = password or os.getenv("AMQP_PASSWORD", "guest")
 
         self._connection: RobustConnection = None
         self._channel: RobustChannel = None

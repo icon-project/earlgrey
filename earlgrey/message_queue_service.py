@@ -27,7 +27,7 @@ class MessageQueueService(MessageQueueConnection, Generic[T]):
     loop = asyncio.get_event_loop() or asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    def __init__(self, amqp_target, route_key, account='guest', password='guest', **task_kwargs):
+    def __init__(self, amqp_target, route_key, account=None, password=None, **task_kwargs):
         super().__init__(amqp_target, route_key, account, password)
 
         if self.TaskType is object and type(self) is not MessageQueueService:
