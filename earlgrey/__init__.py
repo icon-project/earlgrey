@@ -13,5 +13,6 @@
 # limitations under the License.
 
 from .message_queue_task import *
+from .message_queue_connection import *
 from .message_queue_service import *
 from .message_queue_stub import *

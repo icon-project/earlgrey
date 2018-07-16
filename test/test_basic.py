@@ -1,5 +1,4 @@
 import asyncio
-import time
 import unittest
 from earlgrey import MessageQueueStub, MessageQueueService, MessageQueueType, message_queue_task
 
@@ -7,6 +6,7 @@ from earlgrey import MessageQueueStub, MessageQueueService, MessageQueueType, me
 class TestBasic(unittest.TestCase):
     def test_order(self):
         order = list(reversed(range(8)))
+
         def _assert_order(num):
             curr_order = order.pop()
             print(f"curr_order : {curr_order}")

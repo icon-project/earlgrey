@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import aio_pika
 import functools
 import inspect
 import logging
@@ -20,40 +19,37 @@ import pika
 import threading
 
 from typing import TypeVar, Generic
-from . import (MessageQueueType, MessageQueueException, worker, rpc,
+from . import (MessageQueueConnection, MessageQueueType, MessageQueueException, worker, rpc,
                MESSAGE_QUEUE_TYPE_KEY, MESSAGE_QUEUE_PRIORITY_KEY, TASK_ATTR_DICT)
 
 T = TypeVar('T')
 
 
-class MessageQueueStub(Generic[T]):
-    TaskType: type = None
+class MessageQueueStub(MessageQueueConnection, Generic[T]):
+    TaskType: type = object
 
-    def __init__(self, amqp_target, route_key):
-        if self.TaskType is None:
+    def __init__(self, amqp_target, route_key, account='guest', password='guest', ):
+        super().__init__(amqp_target, route_key, account, password)
+
+        if self.TaskType is object and type(self) is not MessageQueueStub:
             raise RuntimeError("MessageQueueTasks is not specified.")
-
-        self._amqp_target = amqp_target
-        self._route_key = route_key
 
         self._worker_client_async: worker.ClientAsync = None
         self._rpc_client_async: rpc.ClientAsync = None
-        self._async_task = object.__new__(self.__class__.TaskType)  # not calling __init__
 
+        self._async_task = object.__new__(self.__class__.TaskType)  # not calling __init__
         self._thread_local = _Local()
 
-    async def connect(self):
+    async def connect(self, connection_attempts=None, retry_delay=None):
+        await super().connect(connection_attempts, retry_delay)
         await self._connect_async()
         self._register_tasks_async()
 
     async def _connect_async(self):
-        connection = await aio_pika.connect(f"amqp://{self._amqp_target}")
-        channel = await connection.channel()
-
-        self._worker_client_async = worker.ClientAsync(channel, self._route_key)
+        self._worker_client_async = worker.ClientAsync(self._channel, self._route_key)
         await self._worker_client_async.initialize_queue(auto_delete=True)
 
-        self._rpc_client_async = rpc.ClientAsync(channel, self._route_key)
+        self._rpc_client_async = rpc.ClientAsync(self._channel, self._route_key)
         await self._rpc_client_async.initialize_exchange()
         await self._rpc_client_async.initialize_queue(auto_delete=True)
 

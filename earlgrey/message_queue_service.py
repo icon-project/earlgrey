@@ -12,43 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import aio_pika
 import asyncio
-
 from typing import TypeVar, Generic
 
-from . import MessageQueueType, MESSAGE_QUEUE_TYPE_KEY, TASK_ATTR_DICT
+from . import MessageQueueConnection, MessageQueueType, MESSAGE_QUEUE_TYPE_KEY, TASK_ATTR_DICT
 from .patterns import worker, rpc
 
 T = TypeVar('T')
 
 
-class MessageQueueService(Generic[T]):
-    TaskType: type = None
+class MessageQueueService(MessageQueueConnection, Generic[T]):
+    TaskType: type = object
 
     loop = asyncio.get_event_loop() or asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    def __init__(self, amqp_target, route_key, **task_kwargs):
-        if self.TaskType is None:
-            raise RuntimeError("MessageQueueTasks is not specified.")
+    def __init__(self, amqp_target, route_key, account='guest', password='guest', **task_kwargs):
+        super().__init__(amqp_target, route_key, account, password)
 
-        self._amqp_target = amqp_target
-        self._route_key = route_key
+        if self.TaskType is object and type(self) is not MessageQueueService:
+            raise RuntimeError("MessageQueueTasks is not specified.")
 
         self._worker_server: worker.Server = None
         self._rpc_server: rpc.Server = None
 
         self._task = self.__class__.TaskType(**task_kwargs)
 
-    async def connect(self, **kwargs):
-        connection = await aio_pika.connect_robust(f"amqp://{self._amqp_target}")
-        channel = await connection.channel()
+    async def connect(self, connection_attempts=None, retry_delay=None, **kwargs):
+        await super().connect(connection_attempts, retry_delay)
 
-        self._worker_server = worker.Server(channel, self._route_key)
-        self._rpc_server = rpc.Server(channel, self._route_key)
+        self._worker_server = worker.Server(self._channel, self._route_key)
+        self._rpc_server = rpc.Server(self._channel, self._route_key)
 
-        queue = await channel.declare_queue(self._route_key, auto_delete=True)
+        queue = await self._channel.declare_queue(self._route_key, auto_delete=True)
         await queue.consume(self._consume, **kwargs)
 
         await self._serve_tasks()
