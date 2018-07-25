@@ -14,6 +14,7 @@
 
 __version__ = "0.0.2"
 
+from .message_queue_info import *
 from .message_queue_task import *
 from .message_queue_connection import *
 from .message_queue_service import *

@@ -15,6 +15,7 @@ import os
 
 import aio_pika
 from aio_pika.robust_connection import RobustConnection, RobustChannel
+from .message_queue_info import MessageQueueInfoAsync
 
 
 class MessageQueueConnection:
@@ -28,6 +29,8 @@ class MessageQueueConnection:
         self._connection: RobustConnection = None
         self._channel: RobustChannel = None
 
+        self._async_info: MessageQueueInfoAsync = None
+
     async def connect(self, connection_attempts=None, retry_delay=None):
         self._connection: RobustConnection = await aio_pika.connect_robust(
             f"amqp://{self._amqp_target}",
@@ -40,6 +43,11 @@ class MessageQueueConnection:
         self._connection.add_reconnect_callback(self._callback_connection_reconnect_callback)
 
         self._channel: RobustChannel = await self._connection.channel()
+
+        self._async_info = MessageQueueInfoAsync(self._channel, self._route_key)
+
+    def async_info(self):
+        return self._async_info
 
     def _callback_connection_close(self):
         pass

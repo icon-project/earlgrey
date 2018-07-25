@@ -19,7 +19,7 @@ import pika
 import threading
 
 from typing import TypeVar, Generic
-from . import (MessageQueueConnection, MessageQueueType, MessageQueueException, worker, rpc,
+from . import (MessageQueueConnection, MessageQueueInfoSync, MessageQueueType, MessageQueueException, worker, rpc,
                MESSAGE_QUEUE_TYPE_KEY, MESSAGE_QUEUE_PRIORITY_KEY, TASK_ATTR_DICT)
 
 T = TypeVar('T')
@@ -28,7 +28,7 @@ T = TypeVar('T')
 class MessageQueueStub(MessageQueueConnection, Generic[T]):
     TaskType: type = object
 
-    def __init__(self, amqp_target, route_key, account=None, password=None, ):
+    def __init__(self, amqp_target, route_key, account=None, password=None):
         super().__init__(amqp_target, route_key, account, password)
 
         if self.TaskType is object and type(self) is not MessageQueueStub:
@@ -66,6 +66,7 @@ class MessageQueueStub(MessageQueueConnection, Generic[T]):
         self._thread_local.rpc_client_sync.initialize_queue(auto_delete=True)
 
         self._thread_local.sync_task = object.__new__(self.__class__.TaskType)  # not calling __init__
+        self._thread_local.sync_info = MessageQueueInfoSync(channel, self._route_key)
 
     def _register_tasks_async(self):
         for attribute_name in dir(self._async_task):
@@ -149,8 +150,16 @@ class MessageQueueStub(MessageQueueConnection, Generic[T]):
 
         return self._thread_local.sync_task
 
+    def sync_info(self):
+        if self._thread_local.sync_info is None:
+            self._connect_sync()
+            self._register_tasks_sync()
+
+        return self._thread_local.sync_info
+
 
 class _Local(threading.local):
     worker_client_sync: worker.ClientSync = None
     rpc_client_sync: rpc.ClientSync = None
     sync_task = None
+    sync_info: MessageQueueInfoSync = None
