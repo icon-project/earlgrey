@@ -1,5 +1,8 @@
 import asyncio
 import unittest
+import random
+import string
+
 from earlgrey import MessageQueueStub, MessageQueueService, MessageQueueType, message_queue_task
 
 
@@ -56,3 +59,51 @@ class TestBasic(unittest.TestCase):
 
         loop = asyncio.get_event_loop()
         loop.run_until_complete(_run())
+
+    def test_mq_info(self):
+        class Task:
+            @message_queue_task(type_=MessageQueueType.Worker)
+            async def work_async(self):
+                pass
+
+            @message_queue_task(type_=MessageQueueType.Worker)
+            def work_sync(self):
+                pass
+
+        class Stub(MessageQueueStub[Task]):
+            TaskType = Task
+
+        class Service(MessageQueueService[Task]):
+            TaskType = Task
+
+        async def _run():
+            route_key_length = random.randint(5, 10)
+            route_key = ''.join(random.choice(string.ascii_letters) for _ in range(route_key_length))
+
+            client = Stub('localhost', route_key)
+            await client.connect()
+
+            await client.async_task().work_async()
+            client.sync_task().work_sync()
+            await asyncio.sleep(1)
+
+            info = await client.async_info().queue_info()
+            self.assertEqual(info.declaration_result.message_count, 2)
+
+            info = client.sync_info().queue_info()
+            self.assertEqual(info.method.message_count, 2)
+
+            server = Service('localhost', route_key)
+            await server.connect()
+            await asyncio.sleep(1)
+
+            info = await client.async_info().queue_info()
+            self.assertEqual(info.declaration_result.message_count, 0)
+
+            info = client.sync_info().queue_info()
+            self.assertEqual(info.method.message_count, 0)
+
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(_run())
+
+
