@@ -19,11 +19,11 @@ from .message_queue_info import MessageQueueInfoAsync
 
 
 class MessageQueueConnection:
-    def __init__(self, amqp_target, route_key, account=None, password=None):
+    def __init__(self, amqp_target, route_key, username=None, password=None):
         self._amqp_target = amqp_target
         self._route_key = route_key
 
-        self._account = account or os.getenv("AMQP_ACCOUNT", "guest")
+        self._username = username or os.getenv("AMQP_USERNAME", "guest")
         self._password = password or os.getenv("AMQP_PASSWORD", "guest")
 
         self._connection: RobustConnection = None
@@ -34,7 +34,7 @@ class MessageQueueConnection:
     async def connect(self, connection_attempts=None, retry_delay=None):
         self._connection: RobustConnection = await aio_pika.connect_robust(
             f"amqp://{self._amqp_target}",
-            login=self._account,
+            login=self._username,
             password=self._password,
             connection_attempts=connection_attempts,
             retry_delay=retry_delay)

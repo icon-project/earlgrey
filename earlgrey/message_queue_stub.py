@@ -28,8 +28,8 @@ T = TypeVar('T')
 class MessageQueueStub(MessageQueueConnection, Generic[T]):
     TaskType: type = object
 
-    def __init__(self, amqp_target, route_key, account=None, password=None):
-        super().__init__(amqp_target, route_key, account, password)
+    def __init__(self, amqp_target, route_key, username=None, password=None):
+        super().__init__(amqp_target, route_key, username, password)
 
         if self.TaskType is object and type(self) is not MessageQueueStub:
             raise RuntimeError("MessageQueueTasks is not specified.")
@@ -54,7 +54,12 @@ class MessageQueueStub(MessageQueueConnection, Generic[T]):
         await self._rpc_client_async.initialize_queue(auto_delete=True)
 
     def _connect_sync(self):
-        connection_params = pika.ConnectionParameters(host=f'{self._amqp_target}', heartbeat_interval=0)
+        credential_params = pika.PlainCredentials(self._username, self._password)
+        connection_params = pika.ConnectionParameters(
+            host=f'{self._amqp_target}',
+            heartbeat_interval=0,
+            credentials=credential_params)
+        
         connection = pika.BlockingConnection(connection_params)
         channel = connection.channel()
 
