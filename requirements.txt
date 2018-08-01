@@ -1,1 +1,2 @@
-aio-pika==2.9.0
+aio-pika==3.0.1
+pika==0.12.0
