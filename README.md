@@ -36,7 +36,7 @@ loop.run_until_complete(run())
 ```
 
 
-#### Causion
+#### Caution
 Actually `MessageQueueStub` does not need exact `Task` class which has full implementation of methods. It just needs signature of methods.
 ```python
 # client side.
