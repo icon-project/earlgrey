@@ -1,6 +1,15 @@
-#!/usr/bin/env python
+import sys
+from importlib import import_module
+from pathlib import Path
+
 from setuptools import setup, find_packages
-from earlgrey import __version__
+
+sys.path.insert(0, str(Path.cwd() / 'earlgrey'))
+try:
+    module = import_module('version')
+    version = getattr(module, '__version__')
+finally:
+    sys.path = sys.path[1:]
 
 setup_options = {
     'name': 'earlgrey',
@@ -8,7 +17,7 @@ setup_options = {
     'long_description': open('README.md').read(),
     'long_description_content_type': 'text/markdown',
     'url': 'https://github.com/icon-project/earlgrey',
-    'version': __version__,
+    'version': version,
     'author': 'ICON foundation',
     'packages': find_packages(),
     'license': "Apache License 2.0",
