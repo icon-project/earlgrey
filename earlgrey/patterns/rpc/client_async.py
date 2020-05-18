@@ -21,9 +21,8 @@ import time
 from concurrent import futures
 from aio_pika.exchange import ExchangeType
 from aio_pika.channel import Channel
-from aio_pika.exceptions import UnroutableError
+from aio_pika.exceptions import DeliveryError
 from aio_pika.message import Message, IncomingMessage, DeliveryMode, ReturnedMessage
-from aio_pika.tools import create_future
 from aio_pika.patterns.base import Base
 
 
@@ -84,7 +83,7 @@ class ClientAsync(Base):
         if future and future.done():
             logging.warning("Unknown message was returned: %r", message)
         else:
-            future.set_exception(UnroutableError([message]))
+            future.set_exception(DeliveryError(message, None))
 
     @asyncio.coroutine
     def _on_result_message(self, message: IncomingMessage):
@@ -131,7 +130,7 @@ class ClientAsync(Base):
         return (yield from future)
 
     def _create_future(self) -> asyncio.Future:
-        future = create_future(loop=self.channel.loop)
+        future = self.channel.loop.create_future()
         future_id = id(future)
         self.async_futures[future_id] = future
         future.add_done_callback(lambda f: self.async_futures.pop(future_id, None))

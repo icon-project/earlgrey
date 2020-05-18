@@ -57,7 +57,7 @@ class MessageQueueStub(MessageQueueConnection, Generic[T]):
         credential_params = pika.PlainCredentials(self._username, self._password)
         connection_params = pika.ConnectionParameters(
             host=f'{self._amqp_target}',
-            heartbeat_interval=0,
+            heartbeat=0,
             credentials=credential_params)
         
         connection = pika.BlockingConnection(connection_params)
