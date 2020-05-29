@@ -20,6 +20,7 @@ from concurrent import futures
 
 from aio_pika import ExchangeType, Message, DeliveryMode
 from aio_pika.patterns.base import Base
+from pika import BasicProperties
 
 
 class ClientSync(Base):
@@ -52,7 +53,7 @@ class ClientSync(Base):
         kwargs['arguments'] = arguments
 
         self.channel.queue_declare(queue=self.queue_name, **kwargs)
-        self.result_queue_name = self.channel.queue_declare(exclusive=True, auto_delete=True).method.queue
+        self.result_queue_name = self.channel.queue_declare(queue='', exclusive=True, auto_delete=True).method.queue
 
         self.channel.queue_bind(
             queue=self.queue_name,
@@ -62,7 +63,7 @@ class ClientSync(Base):
                 'x-match': 'any',
             }
         )
-        self.channel.basic_consume(self._on_result_message, queue=self.result_queue_name, no_ack=True)
+        self.channel.basic_consume(on_message_callback=self._on_result_message, queue=self.result_queue_name, auto_ack=False)
 
     def _on_result_message(self, channel, method, properties, body):
         correlation_id = int(properties.correlation_id)
@@ -94,9 +95,25 @@ class ClientSync(Base):
             },
         )
 
-        # noinspection PyProtectedMember
+        properties = BasicProperties(
+            message.properties.content_type,
+            message.content_encoding,
+            message.headers,
+            message.delivery_mode,
+            message.priority,
+            message.correlation_id,
+            message.reply_to,
+            message.expiration,
+            message.message_id,
+            None,
+            message.type,
+            message.user_id,
+            message.app_id,
+        )
+
+    # noinspection PyProtectedMember
         self.channel.basic_publish(
-            '', self.queue_name, message.body, message.properties, mandatory=True
+            '', self.queue_name, message.body, properties, mandatory=True
         )
 
         while not future.done():

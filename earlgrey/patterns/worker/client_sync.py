@@ -14,10 +14,9 @@
 
 # The original codes exist in aio_pika.patterns.master
 
-import time
-
-from aio_pika.message import Message, DeliveryMode
+from aio_pika.message import DeliveryMode, Message
 from aio_pika.patterns.base import Base
+from pika.spec import BasicProperties
 from pika.adapters.blocking_connection import BlockingChannel
 
 
@@ -43,10 +42,25 @@ class ClientSync(Base):
             }
         )
 
+        properties = BasicProperties(
+            message.properties.content_type,
+            message.content_encoding,
+            message.headers,
+            message.delivery_mode,
+            message.priority,
+            message.correlation_id,
+            message.reply_to,
+            message.expiration,
+            message.message_id,
+            None,
+            message.type,
+            message.user_id,
+            message.app_id,
+        )
         # noinspection PyProtectedMember
         self.channel.basic_publish(
             '',
             self.queue_name,
             message.body,
-            message.properties,
+            properties
         )
