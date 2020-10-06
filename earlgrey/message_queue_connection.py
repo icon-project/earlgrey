@@ -54,8 +54,8 @@ class MessageQueueConnection:
     def async_info(self):
         return self._async_info
 
-    def _callback_connection_close(self):
+    def _callback_connection_close(self, exc: Exception):
         pass
 
-    def _callback_connection_reconnect_callback(self, connection: RobustConnection):
+    def _callback_connection_reconnect_callback(self, sender, connection: RobustConnection):
         pass
