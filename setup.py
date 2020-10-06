@@ -1,18 +1,27 @@
-#!/usr/bin/env python
-from setuptools import setup, find_packages
-from earlgrey import __version__
+import sys
+from importlib import import_module
+from pathlib import Path
 
-with open('requirements.txt') as requirements:
-    requires = list(requirements)
+from setuptools import setup, find_packages
+
+sys.path.insert(0, str(Path.cwd() / 'earlgrey'))
+try:
+    module = import_module('version')
+    version = getattr(module, '__version__')
+finally:
+    sys.path = sys.path[1:]
 
 setup_options = {
     'name': 'earlgrey',
-    'description': 'Message Queue library',
-    'version': __version__,
+    'description': 'Python AMQP RPC library',
+    'long_description': open('README.md').read(),
+    'long_description_content_type': 'text/markdown',
+    'url': 'https://github.com/icon-project/earlgrey',
+    'version': version,
     'author': 'ICON foundation',
     'packages': find_packages(),
     'license': "Apache License 2.0",
-    'install_requires': requires,
+    'install_requires': list(open('requirements.txt')),
     'classifiers': [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
@@ -20,7 +29,8 @@ setup_options = {
         'Natural Language :: English',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.6.5'
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7'
     ]
 }
 

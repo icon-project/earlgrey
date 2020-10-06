@@ -32,14 +32,19 @@ class MessageQueueConnection:
         self._async_info: MessageQueueInfoAsync = None
 
     async def connect(self, connection_attempts=None, retry_delay=None):
+        kwargs = {}
+        if connection_attempts is not None:
+            kwargs['connection_attempts'] = connection_attempts
+        if retry_delay is not None:
+            kwargs['retry_delay'] = retry_delay
+
         self._connection: RobustConnection = await aio_pika.connect_robust(
-            f"amqp://{self._amqp_target}",
+            host=self._amqp_target,
             login=self._username,
             password=self._password,
-            connection_attempts=connection_attempts,
-            retry_delay=retry_delay)
+            **kwargs)
+
         self._connection.add_close_callback(self._callback_connection_close)
-        self._connection.add_connection_lost_callback(self._callback_connection_lost_callback)
         self._connection.add_reconnect_callback(self._callback_connection_reconnect_callback)
 
         self._channel: RobustChannel = await self._connection.channel()
@@ -49,11 +54,8 @@ class MessageQueueConnection:
     def async_info(self):
         return self._async_info
 
-    def _callback_connection_close(self):
+    def _callback_connection_close(self, exc: Exception):
         pass
 
-    def _callback_connection_lost_callback(self, connection: RobustConnection):
-        pass
-
-    def _callback_connection_reconnect_callback(self, connection: RobustConnection):
+    def _callback_connection_reconnect_callback(self, sender, connection: RobustConnection):
         pass

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "0.0.4"
+from .version import __version__
 
 from .message_queue_info import *
 from .message_queue_task import *
