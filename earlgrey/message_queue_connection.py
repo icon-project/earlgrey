@@ -56,3 +56,6 @@ class MessageQueueConnection:
 
     def _callback_connection_close(self, exc: Optional[BaseException]):
         pass
+
+    def _callback_connection_reconnect_callback(self, sender, connection: RobustConnection):
+        pass
