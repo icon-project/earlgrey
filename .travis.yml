@@ -14,7 +14,7 @@ branches:
 install:
   - virtualenv venv
   - source venv/bin/activate
-  - pip install -e .[tests]
+  - pip install -e .[test]
 
 script:
   - python -m pytest -ra
