@@ -16,6 +16,9 @@ install:
   - source venv/bin/activate
   - pip install -e .[tests]
 
+script:
+  - python -m pytest -ra
+
 deploy:
   - provider: pypi
     edge: true
