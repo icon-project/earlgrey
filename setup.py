@@ -27,7 +27,6 @@ setup_options = {
     'license': "Apache License 2.0",
     'install_requires': list(open('requirements.txt')),
     'extras_require': extras_requires,
-    'test_suite': 'test',
     'classifiers': [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
