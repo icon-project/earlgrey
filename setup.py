@@ -11,6 +11,10 @@ try:
 finally:
     sys.path = sys.path[1:]
 
+extras_requires = {
+    'test': ['pytest~=5.4.2', 'mock~=4.0.1']
+}
+
 setup_options = {
     'name': 'earlgrey',
     'description': 'Python AMQP RPC library',
@@ -22,6 +26,7 @@ setup_options = {
     'packages': find_packages(),
     'license': "Apache License 2.0",
     'install_requires': list(open('requirements.txt')),
+    'extras_require': extras_requires,
     'classifiers': [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',

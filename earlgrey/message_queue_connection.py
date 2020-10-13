@@ -46,6 +46,7 @@ class MessageQueueConnection:
             **kwargs)
 
         self._connection.add_close_callback(self._callback_connection_close)
+        self._connection.add_reconnect_callback(self._callback_connection_reconnect_callback)
 
         self._channel: RobustChannel = await self._connection.channel()
 
