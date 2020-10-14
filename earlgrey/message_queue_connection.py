@@ -46,6 +46,7 @@ class MessageQueueConnection:
             **kwargs)
 
         self._connection.add_close_callback(self._callback_connection_close)
+        self._connection.add_reconnect_callback(self._callback_connection_reconnect_callback)
 
         self._channel: RobustChannel = await self._connection.channel()
 
@@ -54,8 +55,8 @@ class MessageQueueConnection:
     def async_info(self):
         return self._async_info
 
-    def _callback_connection_close(self, exc: Optional[BaseException]):
+    def _callback_connection_close(self, sender, exc: Optional[BaseException], *args, **kwargs):
         pass
 
-    def _callback_connection_reconnect_callback(self, sender, connection: RobustConnection):
+    def _callback_connection_reconnect_callback(self, sender, connection: RobustConnection, *args, **kwargs):
         pass
