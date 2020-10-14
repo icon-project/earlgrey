@@ -1,2 +1,2 @@
-aio-pika~=6.6.1
+aio-pika~=6.7.1
 pika~=1.1.0
