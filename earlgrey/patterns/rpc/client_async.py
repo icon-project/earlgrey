@@ -81,7 +81,7 @@ class ClientAsync(Base):
 
         self.channel.add_on_return_callback(self._on_message_returned)
 
-    def _on_message_returned(self, sender, message: 'DeliveredMessage'):
+    def _on_message_returned(self, sender, message: 'DeliveredMessage', *args, **kwargs):
         correlation_id = int(message.correlation_id) if message.correlation_id else None
 
         future = self.async_futures.pop(correlation_id, None) or self.concurrent_futures.pop(correlation_id, None)
@@ -91,7 +91,7 @@ class ClientAsync(Base):
             future.set_exception(DeliveryError(message, None))
 
     @asyncio.coroutine
-    def _on_result_message(self, message: 'IncomingMessage'):
+    def _on_result_message(self, message: 'IncomingMessage', *args, **kwargs):
         correlation_id = int(message.correlation_id) if message.correlation_id else None
         try:
             future = self.async_futures[correlation_id]  # type: asyncio.Future

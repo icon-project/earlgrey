@@ -58,9 +58,7 @@ class ClientAsync(Base):
         )
 
     @classmethod
-    def _on_message_returned(cls, sender, message: 'DeliveredMessage'):
+    def _on_message_returned(cls, sender, message: 'DeliveredMessage', *args, **kwargs):
         logging.warning(
             f"Message returned. Probably destination queue does not exists: ({sender}) {message}"
         )
-
-
