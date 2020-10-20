@@ -14,16 +14,21 @@
 
 # The original codes exist in aio_pika.patterns.rpc
 
+
 import asyncio
 import logging
 import time
+from typing import TYPE_CHECKING
 
-from concurrent import futures
-from aio_pika.exchange import ExchangeType
 from aio_pika.channel import Channel
 from aio_pika.exceptions import DeliveryError
-from aio_pika.message import Message, IncomingMessage, DeliveryMode, ReturnedMessage
+from aio_pika.exchange import ExchangeType
+from aio_pika.message import Message, DeliveryMode
 from aio_pika.patterns.base import Base
+
+if TYPE_CHECKING:
+    from aiormq.types import DeliveredMessage
+    from aio_pika.message import IncomingMessage
 
 
 class ClientAsync(Base):
@@ -76,17 +81,17 @@ class ClientAsync(Base):
 
         self.channel.add_on_return_callback(self._on_message_returned)
 
-    def _on_message_returned(self, message: ReturnedMessage):
+    def _on_message_returned(self, sender, message: 'DeliveredMessage'):
         correlation_id = int(message.correlation_id) if message.correlation_id else None
 
         future = self.async_futures.pop(correlation_id, None) or self.concurrent_futures.pop(correlation_id, None)
         if future and future.done():
-            logging.warning("Unknown message was returned: %r", message)
+            logging.warning(f"Unknown message was returned: ({sender}) {message}")
         else:
             future.set_exception(DeliveryError(message, None))
 
     @asyncio.coroutine
-    def _on_result_message(self, message: IncomingMessage):
+    def _on_result_message(self, message: 'IncomingMessage'):
         correlation_id = int(message.correlation_id) if message.correlation_id else None
         try:
             future = self.async_futures[correlation_id]  # type: asyncio.Future

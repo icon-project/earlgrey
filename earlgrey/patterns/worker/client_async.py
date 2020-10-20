@@ -16,9 +16,14 @@
 
 import asyncio
 import logging
+from typing import TYPE_CHECKING
+
 from aio_pika.channel import Channel
-from aio_pika.message import Message, DeliveryMode, ReturnedMessage
+from aio_pika.message import Message, DeliveryMode
 from aio_pika.patterns.base import Base
+
+if TYPE_CHECKING:
+    from aiormq.types import DeliveredMessage
 
 
 class ClientAsync(Base):
@@ -53,10 +58,9 @@ class ClientAsync(Base):
         )
 
     @classmethod
-    def _on_message_returned(cls, message: ReturnedMessage):
+    def _on_message_returned(cls, sender, message: 'DeliveredMessage'):
         logging.warning(
-            "Message returned. Probably destination queue does not exists: %r",
-            message
+            f"Message returned. Probably destination queue does not exists: ({sender}) {message}"
         )
 
 

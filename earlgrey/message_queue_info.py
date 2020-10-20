@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pika.adapters.blocking_connection import BlockingChannel
 from aio_pika.robust_channel import RobustChannel
+from pika.adapters.blocking_connection import BlockingChannel
 
 
 class MessageQueueInfoAsync:
