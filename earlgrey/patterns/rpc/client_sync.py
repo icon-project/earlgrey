@@ -15,7 +15,6 @@
 # The original codes exist in aio_pika.patterns.rpc
 
 import time
-
 from concurrent import futures
 
 from aio_pika import ExchangeType, Message, DeliveryMode

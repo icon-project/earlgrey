@@ -15,10 +15,11 @@
 import functools
 import inspect
 import logging
-import pika
 import threading
-
 from typing import TypeVar, Generic
+
+import pika
+
 from . import (MessageQueueConnection, MessageQueueInfoSync, MessageQueueType, MessageQueueException, worker, rpc,
                MESSAGE_QUEUE_TYPE_KEY, MESSAGE_QUEUE_PRIORITY_KEY, TASK_ATTR_DICT)
 

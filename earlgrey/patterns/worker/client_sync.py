@@ -16,8 +16,8 @@
 
 from aio_pika.message import DeliveryMode, Message
 from aio_pika.patterns.base import Base
-from pika.spec import BasicProperties
 from pika.adapters.blocking_connection import BlockingChannel
+from pika.spec import BasicProperties
 
 
 class ClientSync(Base):

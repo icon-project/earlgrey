@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import aio_pika
-from aio_pika.robust_connection import RobustConnection, RobustChannel
+
 from .message_queue_info import MessageQueueInfoAsync
+
+if TYPE_CHECKING:
+    from aio_pika.robust_connection import RobustChannel, RobustConnection
 
 
 class MessageQueueConnection:
@@ -27,8 +30,8 @@ class MessageQueueConnection:
         self._username = username or os.getenv("AMQP_USERNAME", "guest")
         self._password = password or os.getenv("AMQP_PASSWORD", "guest")
 
-        self._connection: RobustConnection = None
-        self._channel: RobustChannel = None
+        self._connection: 'RobustConnection' = None
+        self._channel: 'RobustChannel' = None
 
         self._async_info: MessageQueueInfoAsync = None
 
@@ -39,7 +42,7 @@ class MessageQueueConnection:
         if retry_delay is not None:
             kwargs['retry_delay'] = retry_delay
 
-        self._connection: RobustConnection = await aio_pika.connect_robust(
+        self._connection: 'RobustConnection' = await aio_pika.connect_robust(
             host=self._amqp_target,
             login=self._username,
             password=self._password,
@@ -48,7 +51,7 @@ class MessageQueueConnection:
         self._connection.add_close_callback(self._callback_connection_close)
         self._connection.add_reconnect_callback(self._callback_connection_reconnect_callback)
 
-        self._channel: RobustChannel = await self._connection.channel()
+        self._channel: 'RobustChannel' = await self._connection.channel()
 
         self._async_info = MessageQueueInfoAsync(self._channel, self._route_key)
 
@@ -58,5 +61,5 @@ class MessageQueueConnection:
     def _callback_connection_close(self, sender, exc: Optional[BaseException], *args, **kwargs):
         pass
 
-    def _callback_connection_reconnect_callback(self, sender, connection: RobustConnection, *args, **kwargs):
+    def _callback_connection_reconnect_callback(self, sender, connection: 'RobustConnection', *args, **kwargs):
         pass
