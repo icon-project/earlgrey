@@ -91,7 +91,7 @@ class ClientAsync(Base):
             future.set_exception(DeliveryError(message, None))
 
     @asyncio.coroutine
-    def _on_result_message(self, message: 'IncomingMessage', *args, **kwargs):
+    def _on_result_message(self, message: 'IncomingMessage'):
         correlation_id = int(message.correlation_id) if message.correlation_id else None
         try:
             future = self.async_futures[correlation_id]  # type: asyncio.Future
