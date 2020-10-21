@@ -14,11 +14,16 @@
 
 # The original codes exist in aio_pika.patterns.master
 
+from typing import TYPE_CHECKING
+
 import asyncio
 from typing import Callable
 from aio_pika.channel import Channel
-from aio_pika.message import IncomingMessage, DeliveryMode
+from aio_pika.message import DeliveryMode
 from aio_pika.patterns.base import Base
+
+if TYPE_CHECKING:
+    from aio_pika.message import IncomingMessage
 
 
 class Server(Base):
@@ -44,7 +49,7 @@ class Server(Base):
         yield from self.queue.consume(self.on_callback)
 
     @asyncio.coroutine
-    def on_callback(self, message: IncomingMessage):
+    def on_callback(self, message: 'IncomingMessage'):
         func_name = message.headers['FuncName']
         func = self.routes.get(func_name)
         if func:
@@ -58,4 +63,3 @@ class Server(Base):
         kwargs = kwargs or {}
         result = yield from func(**kwargs)
         return result
-
