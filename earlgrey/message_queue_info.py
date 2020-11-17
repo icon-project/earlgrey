@@ -17,17 +17,17 @@ from pika.adapters.blocking_connection import BlockingChannel
 
 
 class MessageQueueInfoAsync:
-    def __init__(self, channel: RobustChannel, route_key: str=None):
+    def __init__(self, channel: RobustChannel, route_key: str = None):
         self._channel = channel
         self._route_key = route_key
 
-    async def queue_info(self, name: str=None):
+    async def queue_info(self, name: str = None):
         if name is None:
             name = self._route_key
 
         return await self._channel.declare_queue(name, passive=True)
 
-    async def exchange_info(self, name: str=None):
+    async def exchange_info(self, name: str = None):
         return await self._channel.declare_exchange(name, passive=True)
 
 
@@ -36,13 +36,13 @@ class MessageQueueInfoSync:
         self._channel = channel
         self._route_key = route_key
 
-    def queue_info(self, name: str=None):
+    def queue_info(self, name: str = None):
         if name is None:
             name = self._route_key
 
         return self._channel.queue_declare(queue=name, passive=True)
 
-    def exchange_info(self, name: str=None):
+    def exchange_info(self, name: str = None):
         if name is None:
             name = self._route_key
 

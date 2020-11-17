@@ -14,16 +14,15 @@
 
 # The original codes exist in aio_pika.patterns.master
 
-import asyncio
 import logging
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from aio_pika.channel import Channel
-from aio_pika.message import Message, DeliveryMode
+from aio_pika.message import Message, DeliveryMode, ReturnedMessage
 from aio_pika.patterns.base import Base
 
 if TYPE_CHECKING:
-    from aiormq.types import DeliveredMessage
+    from aio_pika import Queue
 
 
 class ClientAsync(Base):
@@ -33,16 +32,17 @@ class ClientAsync(Base):
     def __init__(self, channel: Channel, queue_name):
         self.channel = channel
         self.queue_name = queue_name
-        self.queue = None
+        self.queue: Optional[Queue] = None
 
         self.channel.add_on_return_callback(self._on_message_returned)
 
-    @asyncio.coroutine
-    def initialize_queue(self, **kwargs):
-        self.queue = yield from self.channel.declare_queue(name=self.queue_name, **kwargs)
+    async def initialize_queue(self, **kwargs):
+        self.queue = await self.channel.declare_queue(name=self.queue_name, **kwargs)
 
-    @asyncio.coroutine
-    def call(self, func_name: str, kwargs=None, priority=128):
+    async def close(self):
+        pass
+
+    async def call(self, func_name: str, kwargs=None, priority=128):
         message = Message(
             body=self.serialize(kwargs or {}),
             content_type=self.CONTENT_TYPE,
@@ -53,12 +53,12 @@ class ClientAsync(Base):
             }
         )
 
-        yield from self.channel.default_exchange.publish(
+        await self.channel.default_exchange.publish(
             message, self.queue_name, mandatory=True
         )
 
-    @classmethod
-    def _on_message_returned(cls, sender, message: 'DeliveredMessage', *args, **kwargs):
+    @staticmethod
+    def _on_message_returned(sender, message: ReturnedMessage, *args, **kwargs):
         logging.warning(
             f"Message returned. Probably destination queue does not exists: ({sender}) {message}"
         )

@@ -55,6 +55,10 @@ class MessageQueueConnection:
 
         self._async_info = MessageQueueInfoAsync(self._channel, self._route_key)
 
+    async def close(self):
+        if self._connection:
+            await self._connection.close()
+
     def async_info(self):
         return self._async_info
 

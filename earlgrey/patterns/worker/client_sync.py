@@ -19,6 +19,8 @@ from aio_pika.patterns.base import Base
 from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import BasicProperties
 
+from earlgrey import MessageQueueException
+
 
 class ClientSync(Base):
     CONTENT_TYPE = 'application/python-pickle'
@@ -28,8 +30,16 @@ class ClientSync(Base):
         self.channel = channel
         self.queue_name = queue_name
 
+        self.channel.add_on_return_callback(self._on_message_returned)
+
+    def _on_message_returned(self, channel, method, properties, body):
+        raise MessageQueueException(f"{method}, {properties}")
+
     def initialize_queue(self, **kwargs):
         self.channel.queue_declare(queue=self.queue_name, **kwargs)
+
+    def close(self):
+        self.channel.queue_delete(queue=self.queue_name)
 
     def call(self, func_name: str, kwargs=None, priority=128):
         message = Message(

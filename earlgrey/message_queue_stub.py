@@ -60,14 +60,16 @@ class MessageQueueStub(MessageQueueConnection, Generic[T]):
             host=f'{self._amqp_target}',
             heartbeat=0,
             credentials=credential_params)
-        
+
         connection = pika.BlockingConnection(connection_params)
         channel = connection.channel()
+
+        self._thread_local.sync_connection = connection
 
         self._thread_local.worker_client_sync = worker.ClientSync(channel, self._route_key)
         self._thread_local.worker_client_sync.initialize_queue(auto_delete=True)
 
-        self._thread_local.rpc_client_sync: rpc.ClientSync = rpc.ClientSync(channel, self._route_key)
+        self._thread_local.rpc_client_sync = rpc.ClientSync(channel, self._route_key)
         self._thread_local.rpc_client_sync.initialize_exchange()
         self._thread_local.rpc_client_sync.initialize_queue(auto_delete=True)
 
@@ -146,6 +148,26 @@ class MessageQueueStub(MessageQueueConnection, Generic[T]):
             raise result
         return result
 
+    async def _close_async(self):
+        if self._rpc_client_async:
+            await self._rpc_client_async.close()
+        if self._worker_client_async:
+            await self._worker_client_async.close()
+
+    def _close_sync(self):
+        if self._thread_local.rpc_client_sync:
+            self._thread_local.rpc_client_sync.close()
+        if self._thread_local.worker_client_sync:
+            self._thread_local.worker_client_sync.close()
+
+        if self._thread_local.sync_connection:
+            self._thread_local.sync_connection.close()
+
+    async def close(self):
+        await self._close_async()
+        self._close_sync()
+        await super().close()
+
     def async_task(self) -> T:
         return self._async_task
 
@@ -165,6 +187,7 @@ class MessageQueueStub(MessageQueueConnection, Generic[T]):
 
 
 class _Local(threading.local):
+    sync_connection: pika.BlockingConnection = None
     worker_client_sync: worker.ClientSync = None
     rpc_client_sync: rpc.ClientSync = None
     sync_task = None

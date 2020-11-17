@@ -14,15 +14,15 @@
 
 # The original codes exist in aio_pika.patterns.master
 
-from typing import TYPE_CHECKING
-
-import asyncio
 from typing import Callable
+from typing import TYPE_CHECKING, Optional
+
 from aio_pika.channel import Channel
 from aio_pika.message import DeliveryMode
 from aio_pika.patterns.base import Base
 
 if TYPE_CHECKING:
+    from aio_pika import Queue
     from aio_pika.message import IncomingMessage
 
 
@@ -35,31 +35,31 @@ class Server(Base):
         self.queue_name = queue_name
 
         self.routes = {}
-        self.queue = None
+        self.queue: Optional[Queue] = None
 
-    @asyncio.coroutine
-    def initialize_queue(self, **kwargs):
-        self.queue = yield from self.channel.declare_queue(name=self.queue_name, **kwargs)
+    async def initialize_queue(self, **kwargs):
+        self.queue = await self.channel.declare_queue(name=self.queue_name, **kwargs)
 
     def create_callback(self, func_name: str, func: Callable):
         self.routes[func_name] = func
 
-    @asyncio.coroutine
-    def consume(self):
-        yield from self.queue.consume(self.on_callback)
+    async def consume(self):
+        await self.queue.consume(self.on_callback)
 
-    @asyncio.coroutine
-    def on_callback(self, message: 'IncomingMessage'):
+    async def on_callback(self, message: 'IncomingMessage'):
         func_name = message.headers['FuncName']
         func = self.routes.get(func_name)
         if func:
             with message.process(requeue=True, ignore_processed=True):
                 data = self.deserialize(message.body)
-                yield from self._execute(func, data)
+                await self._execute(func, data)
 
-    @classmethod
-    @asyncio.coroutine
-    def _execute(cls, func, kwargs):
+    async def close(self):
+        if self.queue:
+            await self.queue.delete()
+
+    @staticmethod
+    async def _execute(func, kwargs):
         kwargs = kwargs or {}
-        result = yield from func(**kwargs)
+        result = await func(**kwargs)
         return result

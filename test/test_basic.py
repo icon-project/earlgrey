@@ -57,6 +57,9 @@ class TestBasic(unittest.TestCase):
 
             self.assertEqual(0, len(order))
 
+            await server.close()
+            await client.close()
+
         loop = asyncio.get_event_loop()
         loop.run_until_complete(_run())
 
@@ -103,7 +106,8 @@ class TestBasic(unittest.TestCase):
             info = client.sync_info().queue_info()
             self.assertEqual(info.method.message_count, 0)
 
+            await server.close()
+            await client.close()
+
         loop = asyncio.get_event_loop()
         loop.run_until_complete(_run())
-
-

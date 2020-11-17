@@ -14,14 +14,16 @@
 
 # The original codes exist in aio_pika.patterns.rpc
 
-import asyncio
 import time
-from typing import Callable
+from typing import Optional, TYPE_CHECKING
 
-from aio_pika.exchange import ExchangeType
 from aio_pika.channel import Channel
+from aio_pika.exchange import ExchangeType
 from aio_pika.message import Message, IncomingMessage
 from aio_pika.patterns.base import Base
+
+if TYPE_CHECKING:
+    from aio_pika import Queue
 
 
 class Server(Base):
@@ -34,27 +36,25 @@ class Server(Base):
         self.routes = {}
 
         self.queue_name = queue_name
-        self.queue = None
+        self.queue: Optional[Queue] = None
 
         self.dlx_exchange = None
 
-    @asyncio.coroutine
-    def initialize_exchange(self):
-        self.dlx_exchange = yield from self.channel.declare_exchange(
+    async def initialize_exchange(self):
+        self.dlx_exchange = await self.channel.declare_exchange(
             self.DLX_NAME,
             type=ExchangeType.HEADERS,
             auto_delete=True,
         )
 
-    @asyncio.coroutine
-    def initialize_queue(self, **kwargs):
+    async def initialize_queue(self, **kwargs):
         arguments = kwargs.pop('arguments', {}).update({
             'x-dead-letter-exchange': self.DLX_NAME,
         })
 
         kwargs['arguments'] = arguments
 
-        self.queue = yield from self.channel.declare_queue(name=self.queue_name, **kwargs)
+        self.queue = await self.channel.declare_queue(name=self.queue_name, **kwargs)
 
     def create_callback(self, func_name, func):
         if func_name in self.routes:
@@ -65,12 +65,10 @@ class Server(Base):
         self.func_names[func] = func_name
         self.routes[func_name] = func
 
-    @asyncio.coroutine
-    def consume(self):
-        yield from self.queue.consume(self.on_callback)
+    async def consume(self):
+        await self.queue.consume(self.on_callback)
 
-    @asyncio.coroutine
-    def on_callback(self, message: IncomingMessage):
+    async def on_callback(self, message: IncomingMessage):
         func_name = message.headers['FuncName']
         if func_name not in self.routes:
             return
@@ -79,7 +77,7 @@ class Server(Base):
         func = self.routes[func_name]
 
         try:
-            result = yield from self._execute(func, payload)
+            result = await self._execute(func, payload)
             result = self.serialize(result)
             message_type = 'result'
         except Exception as e:
@@ -94,7 +92,7 @@ class Server(Base):
             type=message_type,
         )
 
-        yield from self.channel.default_exchange.publish(
+        await self.channel.default_exchange.publish(
             result_message,
             message.reply_to,
             mandatory=False
@@ -102,8 +100,12 @@ class Server(Base):
 
         message.ack()
 
-    @asyncio.coroutine
-    def _execute(self, func, payload):
-        return (yield from func(**payload))
+    async def close(self):
+        if self.queue:
+            await self.queue.delete()
+
+    @staticmethod
+    async def _execute(func, payload):
+        return await func(**payload)
 
 

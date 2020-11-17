@@ -49,6 +49,13 @@ class MessageQueueService(MessageQueueConnection, Generic[T]):
 
         await self._serve_tasks()
 
+    async def close(self):
+        if self._rpc_server:
+            await self._rpc_server.close()
+        if self._worker_server:
+            await self._worker_server.close()
+        await super().close()
+
     async def _serve_tasks(self):
         for attribute_name in dir(self._task):
             try:

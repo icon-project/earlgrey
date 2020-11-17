@@ -18,16 +18,16 @@
 import asyncio
 import logging
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from aio_pika.channel import Channel
 from aio_pika.exceptions import DeliveryError
 from aio_pika.exchange import ExchangeType
-from aio_pika.message import Message, DeliveryMode
+from aio_pika.message import Message, IncomingMessage, DeliveryMode, ReturnedMessage
 from aio_pika.patterns.base import Base
 
 if TYPE_CHECKING:
-    from aiormq.types import DeliveredMessage
+    from aio_pika import Queue
     from aio_pika.message import IncomingMessage
 
 
@@ -37,8 +37,9 @@ class ClientAsync(Base):
     def __init__(self, channel: Channel, queue_name):
         self.channel = channel
         self.queue_name = queue_name
-        self.queue = None
-        self.result_queue = None
+        self.queue: Optional[Queue] = None
+        self.result_queue: Optional[Queue] = None
+        self.result_consumer_tag = None
 
         self.async_futures = {}
         self.concurrent_futures = {}
@@ -48,26 +49,26 @@ class ClientAsync(Base):
 
         self.dlx_exchange = None
 
-    @asyncio.coroutine
-    def initialize_exchange(self):
-        self.dlx_exchange = yield from self.channel.declare_exchange(
+        self.channel.add_on_return_callback(self._on_message_returned)
+
+    async def initialize_exchange(self):
+        self.dlx_exchange = await self.channel.declare_exchange(
             self.DLX_NAME,
             type=ExchangeType.HEADERS,
             auto_delete=True,
         )
 
-    @asyncio.coroutine
-    def initialize_queue(self, **kwargs):
+    async def initialize_queue(self, **kwargs):
         arguments = kwargs.pop('arguments', {}).update({
             'x-dead-letter-exchange': self.DLX_NAME,
         })
 
         kwargs['arguments'] = arguments
 
-        self.queue = yield from self.channel.declare_queue(name=self.queue_name, **kwargs)
+        self.queue = await self.channel.declare_queue(name=self.queue_name, **kwargs)
 
-        self.result_queue = yield from self.channel.declare_queue(None, exclusive=True, auto_delete=True)
-        yield from self.result_queue.bind(
+        self.result_queue = await self.channel.declare_queue(None, exclusive=True, auto_delete=True)
+        await self.result_queue.bind(
             self.dlx_exchange, "",
             arguments={
                 "From": self.result_queue.name,
@@ -75,13 +76,24 @@ class ClientAsync(Base):
             }
         )
 
-        yield from self.result_queue.consume(
+        self.result_consumer_tag = await self.result_queue.consume(
             self._on_result_message, no_ack=True
         )
 
-        self.channel.add_on_return_callback(self._on_message_returned)
+    async def close(self):
+        await self.result_queue.cancel(self.result_consumer_tag)
+        self.result_consumer_tag = None
 
-    def _on_message_returned(self, sender, message: 'DeliveredMessage', *args, **kwargs):
+        await self.result_queue.unbind(
+            self.dlx_exchange, "",
+            arguments={
+                "From": self.result_queue.name,
+                'x-match': 'any',
+            }
+        )
+        await self.result_queue.delete()
+
+    def _on_message_returned(self, sender, message: ReturnedMessage, *args, **kwargs):
         correlation_id = int(message.correlation_id) if message.correlation_id else None
 
         future = self.async_futures.pop(correlation_id, None) or self.concurrent_futures.pop(correlation_id, None)
@@ -90,8 +102,7 @@ class ClientAsync(Base):
         else:
             future.set_exception(DeliveryError(message, None))
 
-    @asyncio.coroutine
-    def _on_result_message(self, message: 'IncomingMessage'):
+    async def _on_result_message(self, message: 'IncomingMessage'):
         correlation_id = int(message.correlation_id) if message.correlation_id else None
         try:
             future = self.async_futures[correlation_id]  # type: asyncio.Future
@@ -109,9 +120,8 @@ class ClientAsync(Base):
             else:
                 future.set_exception(RuntimeError("Unknown message type %r" % message.type))
 
-    @asyncio.coroutine
-    def call(self, func_name, kwargs: dict=None, *, expiration: int=None,
-             priority: int=128, delivery_mode: DeliveryMode=DeliveryMode.NOT_PERSISTENT):
+    async def call(self, func_name, kwargs: dict = None, *, expiration: int = None,
+                   priority: int = 128, delivery_mode: DeliveryMode = DeliveryMode.NOT_PERSISTENT):
         future = self._create_future()
         message = Message(
             body=self.serialize(kwargs or {}),
@@ -128,11 +138,11 @@ class ClientAsync(Base):
             },
         )
 
-        yield from self.channel.default_exchange.publish(
+        await self.channel.default_exchange.publish(
             message, routing_key=self.queue_name, mandatory=True
         )
 
-        return (yield from future)
+        return await future
 
     def _create_future(self) -> asyncio.Future:
         future = self.channel.loop.create_future()

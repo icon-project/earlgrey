@@ -1,11 +1,12 @@
 import asyncio
-import unittest
 import multiprocessing
+import os
 import random
 import string
 import subprocess
 import traceback
-import os
+import unittest
+from typing import Optional
 
 from earlgrey import MessageQueueStub, MessageQueueService, MessageQueueType, message_queue_task
 
@@ -104,7 +105,10 @@ class TestMultiprocess(unittest.TestCase):
         self.assertEqual(client.exitcode, 0)
 
     def _run_server(self, username=None, password=None):
+        message_queue_service: Optional[Service] = None
+
         async def _run():
+            nonlocal message_queue_service
             try:
                 message_queue_service = Service('localhost', route_key, username, password)
                 await message_queue_service.connect()
@@ -118,13 +122,23 @@ class TestMultiprocess(unittest.TestCase):
         task = loop.create_task(_run())
         loop.run_forever()
 
+        async def _close():
+            if message_queue_service:
+                print("close server!!!")
+                await message_queue_service.close()
+
+        loop.run_until_complete(_close())
+
         if task.exception():
             raise task.exception()
 
         print("run_server finished.")
 
     def _run_client(self, username=None, password=None):
+        message_queue_stub: Optional[Stub] = None
+
         async def _run():
+            nonlocal message_queue_stub
             try:
                 message_queue_stub = Stub('localhost', route_key, username, password)
                 await message_queue_stub.connect()
@@ -138,6 +152,9 @@ class TestMultiprocess(unittest.TestCase):
                 message_queue_stub.sync_task().ping(123)
 
                 await message_queue_stub.async_task().stop()
+
+                print("close client!!!")
+                await message_queue_stub.close()
             except:
                 loop.stop()
                 raise
@@ -146,6 +163,7 @@ class TestMultiprocess(unittest.TestCase):
         asyncio.set_event_loop(loop)
 
         loop.run_until_complete(_run())
+
         print("run_client finished.")
 
 

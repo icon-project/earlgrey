@@ -20,12 +20,15 @@ from concurrent import futures
 from aio_pika import ExchangeType, Message, DeliveryMode
 from aio_pika.patterns.base import Base
 from pika import BasicProperties
+from pika.adapters.blocking_connection import BlockingChannel
+
+from earlgrey import MessageQueueException
 
 
 class ClientSync(Base):
     DLX_NAME = 'rpc.dlx'
 
-    def __init__(self, channel, queue_name):
+    def __init__(self, channel: BlockingChannel, queue_name):
         self.channel = channel
         self.queue_name = queue_name
         self.result_queue_name = None
@@ -36,6 +39,8 @@ class ClientSync(Base):
         self.routes = {}
 
         self.dlx_exchange = None
+
+        self.channel.add_on_return_callback(self._on_message_returned)
 
     def initialize_exchange(self):
         self.dlx_exchange = self.channel.exchange_declare(
@@ -64,6 +69,10 @@ class ClientSync(Base):
         )
         self.channel.basic_consume(on_message_callback=self._on_result_message, queue=self.result_queue_name, auto_ack=False)
 
+    def close(self):
+        self.channel.queue_delete(queue=self.queue_name)
+        self.channel.queue_delete(queue=self.result_queue_name)
+
     def _on_result_message(self, channel, method, properties, body):
         correlation_id = int(properties.correlation_id)
         try:
@@ -74,8 +83,17 @@ class ClientSync(Base):
             payload = self.deserialize(body)
             future.set_result(payload)
 
-    def call(self, func_name, kwargs: dict=None, *, expiration: int=None,
-             priority: int=128, delivery_mode: DeliveryMode=DeliveryMode.NOT_PERSISTENT):
+    def _on_message_returned(self, channel, method, properties, body):
+        correlation_id = int(properties.correlation_id)
+        try:
+            future = self.futures[correlation_id]
+        except KeyError:
+            pass
+        else:
+            future.set_exception(MessageQueueException(f"{method}, {properties}"))
+
+    def call(self, func_name, kwargs: dict = None, *, expiration: int = None,
+             priority: int = 128, delivery_mode: DeliveryMode = DeliveryMode.NOT_PERSISTENT):
         future = self._create_future()
         correlation_id = id(future)
 
