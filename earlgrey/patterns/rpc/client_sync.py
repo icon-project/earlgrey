@@ -62,7 +62,11 @@ class ClientSync(Base):
                 'x-match': 'any',
             }
         )
-        self.channel.basic_consume(on_message_callback=self._on_result_message, queue=self.result_queue_name, auto_ack=False)
+        self.channel.basic_consume(
+            on_message_callback=self._on_result_message,
+            queue=self.result_queue_name,
+            auto_ack=True
+        )
 
     def _on_result_message(self, channel, method, properties, body):
         correlation_id = int(properties.correlation_id)
